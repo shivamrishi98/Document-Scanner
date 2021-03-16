@@ -10,7 +10,7 @@ import VisionKit
 import Vision
 import PDFKit
 
-class ViewController: UIViewController {
+class ScannerViewController: UIViewController {
 
     private var textRecognitionRequest = VNRecognizeTextRequest(completionHandler: nil)
     private var textRecognitionWorkQueue = DispatchQueue(label: "TextRecognitionQueue",
@@ -154,7 +154,7 @@ class ViewController: UIViewController {
     
 }
 
-extension ViewController:VNDocumentCameraViewControllerDelegate {
+extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
     
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
         
