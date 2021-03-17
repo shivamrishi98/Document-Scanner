@@ -9,11 +9,10 @@ import UIKit
 import VisionKit
 import Vision
 import PDFKit
-import RealmSwift
 
-class ScannerViewController: UIViewController {
 
-    private let realm = try! Realm()
+final class ScannerViewController: UIViewController {
+
     
     private var textRecognitionRequest = VNRecognizeTextRequest(completionHandler: nil)
     private var textRecognitionWorkQueue = DispatchQueue(label: "TextRecognitionQueue",
@@ -153,33 +152,17 @@ extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
                                           !text.trimmingCharacters(in: .whitespaces).isEmpty else {
                                         return
                                     }
-                                    guard let documentData = pdfDocument.dataRepresentation(),
-                                          let documentDirectory = FileManager.default.urls(
-                                            for: .documentDirectory,
-                                            in: .userDomainMask).first else {
-                                        return
+
+                                    RealmManager.shared.saveDocument(
+                                        pdfDocument,
+                                        model: DocumentViewModel(
+                                            fileName: text,
+                                            createdDate: date)) { [weak self] success in
+                                        DispatchQueue.main.async {
+                                            NotificationCenter.default.post(name: .documentAddedNotification,object: nil)
+                                            self?.tabBarController?.selectedIndex = 1
+                                        }
                                     }
-                                    
-                                    let docUrl = documentDirectory.appendingPathComponent(text)
-                                    
-                                    let object = Document()
-                                    object.id = UUID().uuidString
-                                    object.fileName = text
-                                    object.createdDate = date
-                                    do {
-                                        try documentData.write(to: docUrl)
-                                        self?.realm.beginWrite()
-                                        self?.realm.add(object)
-                                        try self?.realm.commitWrite()
-                                        NotificationCenter.default.post(name: .documentAddedNotification,
-                                                                        object: nil)
-                                        self?.tabBarController?.selectedIndex = 1
-                                    }
-                                    catch {
-                                        print(error.localizedDescription)
-                                    }
-                                    
-                                    
                                     
                                 }))
             

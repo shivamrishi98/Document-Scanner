@@ -12,7 +12,7 @@ protocol ToggleViewDelegate:AnyObject {
     func toggleViewDidTapImageToText(_ toggleView:ToggleView)
 }
 
-class ToggleView: UIView {
+final class ToggleView: UIView {
 
     enum State {
         case scanner

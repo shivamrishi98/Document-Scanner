@@ -6,14 +6,12 @@
 //
 
 import UIKit
-import RealmSwift
 
-class DocumentsViewController: UIViewController {
+final class DocumentsViewController: UIViewController {
 
-    private let realm = try! Realm()
-    
     private var viewModels = [DocumentViewModel]()
     private var documents = [Document]()
+    private var observer:NSObjectProtocol?
     
     private let tableView:UITableView = {
         let tableView = UITableView(frame: .zero, style: .grouped)
@@ -33,8 +31,7 @@ class DocumentsViewController: UIViewController {
         return label
     }()
     
-    private var observer:NSObjectProtocol?
-    
+  
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -71,21 +68,26 @@ class DocumentsViewController: UIViewController {
     
     private func fetchData() {
         viewModels.removeAll()
-        let documents = realm.objects(Document.self)
-        self.documents = documents.compactMap({$0})
-        if !documents.isEmpty {
-            tableView.isHidden = false
-            noDocumentsLabel.isHidden = true
-            for document in documents {
-                self.viewModels.append(DocumentViewModel(fileName: document.fileName,
-                                                         createdDate: document.createdDate))
+        
+        RealmManager.shared.fetchDocuments { [weak self] documents in
+            self?.documents = documents.compactMap({$0})
+            
+            DispatchQueue.main.async {
+                if !documents.isEmpty {
+                    self?.tableView.isHidden = false
+                    self?.noDocumentsLabel.isHidden = true
+                    for document in documents {
+                        self?.viewModels.append(DocumentViewModel(fileName: document.fileName,
+                                                                  createdDate: document.createdDate))
+                    }
+                    self?.tableView.reloadData()
+                } else {
+                    self?.tableView.isHidden = true
+                    self?.noDocumentsLabel.isHidden = false
+                }
             }
-            tableView.reloadData()
-        } else {
-            tableView.isHidden = true
-            noDocumentsLabel.isHidden = false
         }
-    
+        
         
     }
     
@@ -116,21 +118,8 @@ extension DocumentsViewController:UITableViewDelegate,UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        guard let documentDirectory = FileManager.default.urls(for: .documentDirectory,
-                                                               in: .userDomainMask).first else {
-            return
-        }
-        
         let document = documents[indexPath.row]
-        let docUrl = documentDirectory.appendingPathComponent(document.fileName)
-
-        if FileManager.default.fileExists(atPath: docUrl.path)
-           {
-            let vc = PDFViewController(url: docUrl)
-            vc.navigationItem.largeTitleDisplayMode = .never
-            vc.navigationItem.title = "PDF Viewer"
-            present(UINavigationController(rootViewController: vc), animated: true)
-        }
+        DocumentManager.shared.openDocument(document, from: self)
         
     }
     
@@ -142,25 +131,27 @@ extension DocumentsViewController:UITableViewDelegate,UITableViewDataSource {
         
         if editingStyle == .delete {
             let document = documents[indexPath.row]
-            
-            tableView.beginUpdates()
-           let viewModel = viewModels.remove(at: indexPath.row)
-           let deletedDocument = documents.remove(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .left)
-            do {
-                realm.beginWrite()
-                realm.delete(document)
-                try realm.commitWrite()
-                
-            } catch {
-                print(error.localizedDescription)
-                viewModels.insert(viewModel, at: indexPath.row)
-                documents.insert(deletedDocument, at: indexPath.row)
-                tableView.insertRows(at: [indexPath],
-                                     with: .left)
+            let viewModel = viewModels[indexPath.row]
+   
+            RealmManager.shared.deleteDocument(document) { [weak self] success in
+
+                if success {
+                    self?.viewModels.remove(at: indexPath.row)
+                    self?.documents.remove(at: indexPath.row)
+                    self?.tableView.deleteRows(at: [indexPath], with: .left)
+
+                } else {
+                    self?.viewModels.insert(viewModel, at: indexPath.row)
+                    self?.documents.insert(document, at: indexPath.row)
+                    self?.tableView.insertRows(at: [indexPath],
+                                               with: .left)
+                }
+                self?.fetchData()
+                tableView.reloadData()
+     
             }
-            self.fetchData()
-            tableView.endUpdates()
+       
+            
         }
         
     }

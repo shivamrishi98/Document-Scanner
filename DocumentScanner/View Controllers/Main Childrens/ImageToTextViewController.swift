@@ -7,7 +7,7 @@
 
 import UIKit
 
-class ImageToTextViewController: UIViewController {
+final class ImageToTextViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()

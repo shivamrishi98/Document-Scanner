@@ -7,7 +7,7 @@
 
 import UIKit
 
-class DocumentTableViewCell: UITableViewCell {
+final class DocumentTableViewCell: UITableViewCell {
     
     static let identifier = "DocumentTableViewCell"
     
