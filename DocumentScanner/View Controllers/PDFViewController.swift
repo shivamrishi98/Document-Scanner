@@ -34,12 +34,81 @@ final class PDFViewController: UIViewController {
         view.addSubview(pdfView)
         let document = PDFDocument(url: docUrl)
         pdfView.document = document
-        
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close,
                                                            target: self,
                                                            action: #selector(didTapCloseButton))
         
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.down.circle.fill"),
+            style: .plain,
+            target: self,
+            action: #selector(didTapSaveToPhotoLibraryButton))
+        
     }
+    
+    @objc private func didTapSaveToPhotoLibraryButton() {
+        
+        guard let images = drawPDFfromURL(url: docUrl) else {
+            return
+        }
+
+        for index in 0..<images.count {
+            UIImageWriteToSavedPhotosAlbum(images[index],
+                                           self,
+                                           #selector(image(_:didFinishSavingWithError:contextInfo:)),
+                                           nil)
+        }
+    }
+    
+    
+    func drawPDFfromURL(url: URL) -> [UIImage]? {
+        guard let document = CGPDFDocument(url as CFURL) else { return nil }
+        var image = [UIImage]()
+        for pageNumber in 1...document.numberOfPages {
+            guard let page = document.page(at: pageNumber) else { return nil }
+            
+            let pageRect = page.getBoxRect(.mediaBox)
+            let renderer = UIGraphicsImageRenderer(size: pageRect.size)
+            let img = renderer.image { ctx in
+                UIColor.white.set()
+                ctx.fill(pageRect)
+                
+                ctx.cgContext.translateBy(x: 0.0, y: pageRect.size.height)
+                ctx.cgContext.scaleBy(x: 1.0, y: -1.0)
+                ctx.cgContext.drawPDFPage(page)
+            }
+            image.append(img)
+        }
+        
+        return image
+    }
+
+    @objc private func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+
+        guard error == nil else {
+            let alert = UIAlertController(title: "Error",
+                                          message: error?.localizedDescription,
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK",
+                                          style: .cancel,
+                                          handler: nil))
+            present(alert,
+                    animated: true)
+            return
+        }
+        
+        let alert = UIAlertController(title: "Success",
+                                      message: "Your pdf has been saved to photos",
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK",
+                                      style: .cancel,
+                                      handler: nil))
+        present(alert,
+                animated: true)
+        
+    }
+    
+    
     
     @objc private func didTapCloseButton() {
         dismiss(animated: true, completion: nil)
