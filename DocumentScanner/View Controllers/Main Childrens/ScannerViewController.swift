@@ -31,15 +31,6 @@ class ScannerViewController: UIViewController {
         return  button
     }()
     
-    private let viewPdfButton:UIButton = {
-        let button = UIButton()
-        button.setTitle("View PDF", for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = .systemGreen
-        button.layer.masksToBounds = true
-        button.layer.cornerRadius = 12
-        return  button
-    }()
     
     private let imageView:UIImageView = {
         let imageView = UIImageView()
@@ -54,35 +45,32 @@ class ScannerViewController: UIViewController {
         title = "Scanner"
         view.backgroundColor = . systemBackground
         view.addSubview(scanButton)
-        view.addSubview(viewPdfButton)
         view.addSubview(imageView)
         scanButton.addTarget(self,
                              action: #selector(didTapScanButton),
                              for: .touchUpInside)
-        viewPdfButton.addTarget(self,
-                             action: #selector(didTapViewPDFButton),
-                             for: .touchUpInside)
-     
         
-//        textRecognitionRequest = VNRecognizeTextRequest(completionHandler: { request, error in
-//            guard let observations = request.results as? [VNRecognizedTextObservation] ,
-//                  error == nil  else {
-//                print(error)
-//                return
-//            }
-//            var detectedText = ""
-//            
-//            for observation in observations {
-//                guard let topCandidate = observation.topCandidates(1).first else {
-//                    return
-//                }
-//                detectedText += topCandidate.string
-//                detectedText += "\n"
-//            }
-//            
-//            
-//        })
-
+        
+        
+        //        textRecognitionRequest = VNRecognizeTextRequest(completionHandler: { request, error in
+        //            guard let observations = request.results as? [VNRecognizedTextObservation] ,
+        //                  error == nil  else {
+        //                print(error)
+        //                return
+        //            }
+        //            var detectedText = ""
+        //
+        //            for observation in observations {
+        //                guard let topCandidate = observation.topCandidates(1).first else {
+        //                    return
+        //                }
+        //                detectedText += topCandidate.string
+        //                detectedText += "\n"
+        //            }
+        //
+        //
+        //        })
+        
     }
     
     @objc private func didTapScanButton() {
@@ -91,21 +79,6 @@ class ScannerViewController: UIViewController {
         present(vc,animated: true)
     }
     
-    @objc private func didTapViewPDFButton() {
-        
-        guard let documentDirectory = FileManager.default.urls(for: .documentDirectory,
-                                                               in: .userDomainMask).first else {
-            return
-        }
-        let docUrl = documentDirectory.appendingPathComponent("scanned-Docs-Testing.pdf")
-
-        if FileManager.default.fileExists(atPath: docUrl.path) {
-            let vc = PDFViewController(url: docUrl)
-            present(vc, animated: true)
-        }
-
-
-    }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
@@ -121,11 +94,6 @@ class ScannerViewController: UIViewController {
                                   width: view.frame.size.width-40,
                                   height: 50)
         
-        viewPdfButton.frame = CGRect(x: 20,
-                                     y: (scanButton.frame.size.height+scanButton.frame.origin.y) + 20,
-                                     width: view.frame.size.width-40,
-                                     height: 50)
-
     }
     
     private func recognizeTextInImage(_ image:UIImage) {
@@ -135,7 +103,7 @@ class ScannerViewController: UIViewController {
         
         textRecognitionWorkQueue.async {
             let requestHandler = VNImageRequestHandler(cgImage: cgImage,
-                                                           options: [:])
+                                                       options: [:])
             do {
                 try requestHandler.perform([self.textRecognitionRequest])
             } catch {
@@ -205,6 +173,7 @@ extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
                                         try self?.realm.commitWrite()
                                         NotificationCenter.default.post(name: .documentAddedNotification,
                                                                         object: nil)
+                                        self?.tabBarController?.selectedIndex = 1
                                     }
                                     catch {
                                         print(error.localizedDescription)
@@ -212,7 +181,7 @@ extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
                                     
                                     
                                     
-                                          }))
+                                }))
             
             alert.addAction(UIAlertAction(
                                 title: "Cancel",
