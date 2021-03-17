@@ -34,6 +34,15 @@ class PDFViewController: UIViewController {
         view.addSubview(pdfView)
         let document = PDFDocument(url: docUrl)
         pdfView.document = document
+        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close,
+                                                           target: self,
+                                                           action: #selector(didTapCloseButton))
+        
+    }
+    
+    @objc private func didTapCloseButton() {
+        dismiss(animated: true, completion: nil)
     }
     
     override func viewDidLayoutSubviews() {

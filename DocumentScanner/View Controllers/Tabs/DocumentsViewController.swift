@@ -127,7 +127,9 @@ extension DocumentsViewController:UITableViewDelegate,UITableViewDataSource {
         if FileManager.default.fileExists(atPath: docUrl.path)
            {
             let vc = PDFViewController(url: docUrl)
-            present(vc, animated: true)
+            vc.navigationItem.largeTitleDisplayMode = .never
+            vc.navigationItem.title = "PDF Viewer"
+            present(UINavigationController(rootViewController: vc), animated: true)
         }
         
     }
