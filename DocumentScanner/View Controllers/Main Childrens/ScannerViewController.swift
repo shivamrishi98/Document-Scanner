@@ -9,9 +9,12 @@ import UIKit
 import VisionKit
 import Vision
 import PDFKit
+import RealmSwift
 
 class ScannerViewController: UIViewController {
 
+    private let realm = try! Realm()
+    
     private var textRecognitionRequest = VNRecognizeTextRequest(completionHandler: nil)
     private var textRecognitionWorkQueue = DispatchQueue(label: "TextRecognitionQueue",
                                                          qos: .userInitiated,
@@ -46,14 +49,6 @@ class ScannerViewController: UIViewController {
         return imageView
     }()
     
-//    private let noDocumentLabel:UILabel = {
-//        let label = UILabel()
-//        label.text = "Please scan document"
-//        return label
-//    }()
-//
-//
-
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Scanner"
@@ -67,7 +62,7 @@ class ScannerViewController: UIViewController {
         viewPdfButton.addTarget(self,
                              action: #selector(didTapViewPDFButton),
                              for: .touchUpInside)
-        
+     
         
 //        textRecognitionRequest = VNRecognizeTextRequest(completionHandler: { request, error in
 //            guard let observations = request.results as? [VNRecognizedTextObservation] ,
@@ -103,10 +98,13 @@ class ScannerViewController: UIViewController {
             return
         }
         let docUrl = documentDirectory.appendingPathComponent("scanned-Docs-Testing.pdf")
+
         if FileManager.default.fileExists(atPath: docUrl.path) {
             let vc = PDFViewController(url: docUrl)
             present(vc, animated: true)
         }
+
+
     }
     
     override func viewDidLayoutSubviews() {
@@ -117,10 +115,6 @@ class ScannerViewController: UIViewController {
                                  width: view.frame.size.width,
                                  height: view.frame.size.height-view.safeAreaInsets.top-view.safeAreaInsets.bottom-200)
         
-//        scanButton.frame = CGRect(x: 20,
-//                                  y: (imageView.frame.size.height+imageView.frame.origin.y) + 10,
-//                                  width: view.frame.size.width-40,
-//                                  height: 50)
         
         scanButton.frame = CGRect(x: 20,
                                   y: (imageView.frame.size.height+imageView.frame.origin.y)/2,
@@ -162,7 +156,7 @@ extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
         
         for pageNumber in 0..<scan.pageCount {
             let image = scan.imageOfPage(at: pageNumber)
-//            recognizeTextInImage(image)
+            //            recognizeTextInImage(image)
             guard let pdfPage = PDFPage(image: image) else {
                 return
             }
@@ -170,24 +164,63 @@ extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
                                at: pageNumber)
         }
         
-        guard let documentData = pdfDocument.dataRepresentation(),
-              let documentDirectory = FileManager.default.urls(for: .documentDirectory,
-                                                               in: .userDomainMask).first else {
-            return
-        }
         
-        let docUrl = documentDirectory.appendingPathComponent("scanned-Docs-Testing.pdf")
-        
-        do {
-          
-            try documentData.write(to: docUrl)
-        }
-        catch {
-            print(error.localizedDescription)
-        }
-        
-        
-        controller.dismiss(animated: true, completion: nil)
+        controller.dismiss(animated: true, completion: { [weak self] in
+            let alert = UIAlertController(title: "Save Document",
+                                          message: "",
+                                          preferredStyle: .alert)
+            let date = Date()
+            let defaultName = "scan_document_at_\(date)".replacingOccurrences(of: "-", with: "_").replacingOccurrences(of: ":", with: "_").replacingOccurrences(of: " ", with: "_")
+            
+            alert.addTextField { textfield in
+                textfield.text = defaultName + ".pdf"
+            }
+            
+            alert.addAction(UIAlertAction(
+                                title: "Save",
+                                style: .default,
+                                handler: { _ in
+                                    guard let textfield = alert.textFields?.first,
+                                          let text = textfield.text,
+                                          !text.trimmingCharacters(in: .whitespaces).isEmpty else {
+                                        return
+                                    }
+                                    guard let documentData = pdfDocument.dataRepresentation(),
+                                          let documentDirectory = FileManager.default.urls(
+                                            for: .documentDirectory,
+                                            in: .userDomainMask).first else {
+                                        return
+                                    }
+                                    
+                                    let docUrl = documentDirectory.appendingPathComponent(text)
+                                    
+                                    let object = Document()
+                                    object.id = UUID().uuidString
+                                    object.fileName = text
+                                    object.createdDate = date
+                                    do {
+                                        try documentData.write(to: docUrl)
+                                        self?.realm.beginWrite()
+                                        self?.realm.add(object)
+                                        try self?.realm.commitWrite()
+                                        NotificationCenter.default.post(name: .documentAddedNotification,
+                                                                        object: nil)
+                                    }
+                                    catch {
+                                        print(error.localizedDescription)
+                                    }
+                                    
+                                    
+                                    
+                                          }))
+            
+            alert.addAction(UIAlertAction(
+                                title: "Cancel",
+                                style: .cancel,
+                                handler: nil))
+            
+            self?.present(alert, animated: true)
+        })
     }
     
     func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
@@ -214,3 +247,4 @@ extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
     }
     
 }
+
