@@ -17,7 +17,6 @@ class MainViewController: UIViewController {
     private let scrollView:UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.isPagingEnabled = true
-        scrollView.backgroundColor = .blue
         return scrollView
     }()
     
