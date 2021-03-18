@@ -6,20 +6,11 @@
 //
 
 import UIKit
-import VisionKit
-import Vision
 import PDFKit
-
+import VisionKit
 
 final class ScannerViewController: UIViewController {
 
-    
-    private var textRecognitionRequest = VNRecognizeTextRequest(completionHandler: nil)
-    private var textRecognitionWorkQueue = DispatchQueue(label: "TextRecognitionQueue",
-                                                         qos: .userInitiated,
-                                                         attributes: [],
-                                                         autoreleaseFrequency: .workItem)
-    
     private let scanButton:UIButton = {
         let button = UIButton()
         button.setTitle("Scan Document", for: .normal)
@@ -49,27 +40,6 @@ final class ScannerViewController: UIViewController {
                              action: #selector(didTapScanButton),
                              for: .touchUpInside)
         
-        
-        
-        //        textRecognitionRequest = VNRecognizeTextRequest(completionHandler: { request, error in
-        //            guard let observations = request.results as? [VNRecognizedTextObservation] ,
-        //                  error == nil  else {
-        //                print(error)
-        //                return
-        //            }
-        //            var detectedText = ""
-        //
-        //            for observation in observations {
-        //                guard let topCandidate = observation.topCandidates(1).first else {
-        //                    return
-        //                }
-        //                detectedText += topCandidate.string
-        //                detectedText += "\n"
-        //            }
-        //
-        //
-        //        })
-        
     }
     
     @objc private func didTapScanButton() {
@@ -94,23 +64,7 @@ final class ScannerViewController: UIViewController {
                                   height: 50)
         
     }
-    
-    private func recognizeTextInImage(_ image:UIImage) {
-        guard let cgImage = image.cgImage else {
-            return
-        }
-        
-        textRecognitionWorkQueue.async {
-            let requestHandler = VNImageRequestHandler(cgImage: cgImage,
-                                                       options: [:])
-            do {
-                try requestHandler.perform([self.textRecognitionRequest])
-            } catch {
-                print(error)
-            }
-        }
-        
-    }
+
     
     
 }
@@ -123,7 +77,6 @@ extension ScannerViewController:VNDocumentCameraViewControllerDelegate {
         
         for pageNumber in 0..<scan.pageCount {
             let image = scan.imageOfPage(at: pageNumber)
-            //            recognizeTextInImage(image)
             guard let pdfPage = PDFPage(image: image) else {
                 return
             }
